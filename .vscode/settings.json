@@ -1,0 +1,7 @@
+{
+    "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "flake8.args": [
+        "--max-line-length=120"
+     ]
+}
