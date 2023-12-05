@@ -1,0 +1,4 @@
+creds:
+  root_db_pw: "12345" # your root db pw
+  local_root_index: "/Users/<username>/Library/CloudStorage/Dropbox" # example
+  local_root_suffix: "/Pictures/Costume Album" # example

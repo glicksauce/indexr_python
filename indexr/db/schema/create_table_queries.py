@@ -10,6 +10,8 @@ files_table_create = ("""
                 date_added TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 date_removed timestamp
             );
+
+        CREATE INDEX ON files (filetype);
 """)
 
 # tags are descriptors
@@ -24,6 +26,9 @@ tag_table_create = ("""
                 tag_date_removed timestamp WITH TIME ZONE,
                 UNIQUE(tag_type, tag_name)
             );
+
+        CREATE INDEX ON tags (tag_type);
+        CREATE INDEX ON tags (tag_name);
 """)
 
 # tracks tags assigned to files
@@ -37,6 +42,10 @@ tags_files_create = ("""
             date_added TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             date_removed TIMESTAMP WITH TIME ZONE
             );
+
+        CREATE INDEX ON tags_files (tags_id);
+        CREATE INDEX ON tags_files (files_id);
+        CREATE INDEX ON tags_files (modified_by);
 """)
 
 

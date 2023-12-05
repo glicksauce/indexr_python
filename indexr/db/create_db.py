@@ -1,12 +1,7 @@
-import coloredlogs
-import logging
 import psycopg2
+import logging
 
-from .create_table_queries import create_table_queries
-
-# load_creds_to_environ()
-coloredlogs.install()
-logging.basicConfig(level="DEBUG")
+from schema.create_table_queries import create_table_queries
 
 
 def create_db(cur, conn):
@@ -25,7 +20,7 @@ def create_tables(cur, conn):
     logging.info("tables created successfully")
 
 
-def main():
+def create_db_and_tables():
     # establishing the connection
     conn = psycopg2.connect(
         database="postgres",
@@ -65,4 +60,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    create_db_and_tables()
