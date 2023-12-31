@@ -111,8 +111,11 @@ class TableQueries:
             pprint("assign_tag_to_file failed", e)
 
 
-test_query = TableQueries()
-random_row = test_query.get_random_image_ref()
-random_rows_tags_data = test_query.get_tags_for_image_id(random_row.get("id"))
-test_query.assign_tag_to_file(3, 3)
-test_query.read_all_tagged_indexr()
+if __name__ == "__main__":
+    from indexr.utils import load_creds_to_environ
+    load_creds_to_environ()
+    query_class = TableQueries()
+    random_row = query_class.get_random_image_ref()
+    # random_rows_tags_data = query_class.get_tags_for_image_id(random_row.get("id"))
+    # query_class.assign_tag_to_file(3, 3)
+    # query_class.read_all_tagged_indexr()

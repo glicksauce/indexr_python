@@ -1,63 +1,105 @@
 import psycopg2
+import psycopg2.extras
 import logging
+import os
 
 from schema.create_table_queries import create_table_queries
 
 
-def create_db(cur, conn):
-    # Preparing query to create a database
-    sql = """CREATE DATABASE indexr"""
+class DatabaseManipulation:
+    def __init__(self):
+        self.new_conn()
 
-    # Creating a database
-    cur.execute(sql)
-    print("Database created successfully........")
+    def __del__(self):
+        logging.debug("closing db connection")
+        self.conn.close()
 
+    def new_conn(self):
+        try:
+            conn = psycopg2.connect(
+                user="postgres",
+                password=os.environ["root_db_pw"],
+                host="localhost",
+                port="5432",
+            )
+            conn.autocommit = True
+            cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            self.conn = conn
+            self.cur = cur
+        except Exception:
+            print("I am unable to connect to the database")
+            raise
 
-def create_tables(cur, conn):
-    for query in create_table_queries:
-        cur.execute(query)
-        conn.commit()
-    logging.info("tables created successfully")
+    def new_db_conn(self):
+        # close existing connection if any
+        try:
+            self.conn.close()
+        except Exception as e:
+            logging.debug("unable to close existing connection", e)
 
+        try:
+            conn = psycopg2.connect(
+                database="indexr",
+                user="postgres",
+                password=os.environ["root_db_pw"],
+                host="localhost",
+                port="5432",
+            )
+            cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            self.conn = conn
+            self.cur = cur
+        except Exception:
+            print("I am unable to connect to the database")
+            raise
 
-def create_db_and_tables():
-    # establishing the connection
-    conn = psycopg2.connect(
-        database="postgres",
-        user="postgres",
-        password="password",
-        host="127.0.0.1",
-        port="5432",
-    )
-    conn.autocommit = True
+    def create_db(self):
+        try:
+            # Preparing query to create a database
+            sql = """CREATE DATABASE indexr"""
 
-    # Creating a cursor object using the cursor() method
-    cur = conn.cursor()
+            # Creating a database
+            self.cur.execute(sql)
+            self.conn.commit()
+            logging.info("Indexr Database created successfully........")
+            return True
+        except Exception as e:
+            logging.warning(f"unable to create indexr db: {e}")
+            return False
 
-    try:
-        create_db(cur, conn)
-        conn.close()
-    except Exception as e:
-        logging.error(f"Error creating database or retrieving associated connection and cursor: {e}")
+    def drop_db(self):
+        # Preparing query to create a database
+        sql = """DROP DATABASE indexr with (force)"""
 
-    try:
-        # connect to newly created db
-        conn = psycopg2.connect(
-            dbname="indexr",
-            user="postgres",
-            password="password",
-            host="127.0.0.1",
-            port="5432",
-        )
-        cur = conn.cursor()
+        # Creating a database
+        self.cur.execute(sql)
+        self.conn.commit()
 
-        create_tables(cur, conn)
-    except Exception as e:
-        logging.error(f"Error creating tables: {e}")
-
-    # Closing the connection
-    conn.close()
+    def create_tables(self):
+        print('start create tables')
+        for query in create_table_queries:
+            self.cur.execute(query)
+            self.conn.commit()
+        logging.info("tables created successfully")
 
 
 if __name__ == '__main__':
-    create_db_and_tables()
+    import coloredlogs
+    coloredlogs.install()
+    logging.basicConfig(level="DEBUG")
+    from indexr.utils import load_creds_to_environ
+    load_creds_to_environ()
+
+    # create DB and tables
+    db_mainipulation_class = DatabaseManipulation()
+    db_mainipulation_class.drop_db()
+    db_mainipulation_class.create_db()
+    db_mainipulation_class.new_db_conn()
+    db_mainipulation_class.create_tables()
+
+    # # seed tables
+    # from indexr.db.seed import seed_files_from_files
+    # import seed.seed_tags_files
+    # import seed.seed_tags_table
+    # seed_files_from_files()
+    # seed.seed_tags_files()
+    # seed.seed_tags_table()

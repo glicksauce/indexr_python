@@ -37,7 +37,8 @@ tags_files_create = ("""
             tags_files (
             id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             files_id INT,
-            tags_id INT ,
+            tags_id INT,
+            UNIQUE (files_id, tags_id),
             modified_by TEXT DEFAULT 'seed',
             date_added TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             date_removed TIMESTAMP WITH TIME ZONE

@@ -1,5 +1,4 @@
-#!/usr/bin/python
-impot os
+import os
 import psycopg2
 
 print("starting....")
