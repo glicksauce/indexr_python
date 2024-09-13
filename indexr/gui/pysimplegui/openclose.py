@@ -27,15 +27,23 @@ with Image.open(test_path) as img:  # PIL solution
 
 def load_image_from_path(file_path, resize_x=200, resize_y=200):
     print("file path", file_path)
-    with Image.open(file_path) as img:  # PIL solution
-        logging.debug("exif", img.getexif)
-        bio = io.BytesIO()
-        cur_width, cur_height = img.size
-        new_width, new_height = resize_x, resize_y
-        scale = min(new_height/cur_height, new_width/cur_width)
-        img = img.resize((int(cur_width*scale), int(cur_height*scale)))
-        img.save(bio, format="PNG")
-        return bio
+    try:
+        with Image.open(file_path) as img:  # PIL solution
+            logging.debug("exif", img.getexif)
+            bio = io.BytesIO()
+            cur_width, cur_height = img.size
+            new_width, new_height = resize_x, resize_y
+            scale = min(new_height/cur_height, new_width/cur_width)
+            img = img.resize((int(cur_width*scale), int(cur_height*scale)))
+            img.save(bio, format="PNG")
+            return bio
+    except Exception as e:
+        logging.warning(f"load_image_from_path unable to load image {file_path}: {e}")
+        # return default image
+        image = Image.new('RGB', (200, 200), color='red')
+        image_bytes = io.BytesIO()
+        image.save(image_bytes, format='PNG')
+        return image_bytes
 
 
 layout = [
@@ -43,7 +51,8 @@ layout = [
     [sg.Input(key="-INPUT-")],
     [sg.Text(size=(40, 1), key="-OUTPUT-")],
     [sg.Button("Random Image"), sg.Button("Quit")],
-    [sg.Image(key="-PREVIEW-", size=(200, 200))]
+    [sg.Image(key="-PREVIEW-", size=(200, 200))],
+    [sg.Text(size=(40, 1), key="-IMG_NAME-")]
 ]
 
 # Create the window
@@ -59,7 +68,7 @@ while True:
     elif event == "Random Image":
         query_class = TableQueries()
         random_row = query_class.get_random_image_ref()
-        print("random row file--->", random_row.get("file"))
+        print("random row file--->", random_row)
         preview_img = load_image_from_path(random_row.get("file"))
         print("type-->", type(preview_img))
         print("image--->", preview_img)
@@ -68,11 +77,14 @@ while True:
             [sg.Input(key="-INPUT-")],
             [sg.Text(size=(40, 1), key="-OUTPUT-")],
             [sg.Button("Random Image"), sg.Button("Quit")],
-            [sg.Image(preview_img, size=(200, 200), key='-IMAGE-')],
+            [sg.Image(preview_img, key='-IMAGE-')],
+            [sg.Text(size=(40, 1), key="-IMG_NAME-")]
         ]
         window["-PREVIEW-"].update(
             data=preview_img.getvalue()
         )
+        window["-IMG_NAME-"].update(random_row.get("file"))
+
     window["-OUTPUT-"].update(
         "Hello " + values["-INPUT-"] + "! Thanks for trying PySimpleGUI"
     )
