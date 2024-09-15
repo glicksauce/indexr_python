@@ -3,28 +3,13 @@ import io
 import PySimpleGUI as sg
 from PIL import Image
 import subprocess
-import PIL
 
-from indexr.utils import load_creds_to_environ, split_path_and_file
+from indexr.utils import get_tag_names_from_dict, load_creds_to_environ, split_path_and_file
 from indexr.db.query_manipulation import TableQueries
 
 load_creds_to_environ()
 
 PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT = 400, 400
-
-# test_path = "/Users/jayglickman/Library/CloudStorage/Dropbox/Pictures/Costume Album/2010_Inigo Montoya_1.jpg"
-# fsize = os.path.getsize(test_path)
-# print("fsize:", fsize)
-# with Image.open(test_path) as img:  # PIL solution
-#     print("exif", img.getexif)
-#     bio = io.BytesIO()
-#     cur_width, cur_height = img.size
-#     new_width, new_height = 200, 200
-#     scale = min(new_height/cur_height, new_width/cur_width)
-#     img = img.resize((int(cur_width*scale), int(cur_height*scale)))
-    
-#     img.save(bio, format="PNG")
-#     print("type type", type(img))
 
 
 def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW_IMG_HEIGHT):
@@ -50,10 +35,10 @@ def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW
 
 layout = [
     [sg.Text("What's your name?")],
-    [sg.Input(key="-INPUT-")],
     [sg.Text(size=(40, 1), key="-OUTPUT-")],
     [sg.Button("Random Image"), sg.Button("Quit")],
     [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
+    [sg.Input(key="-TAGS-"), sg.Button(key="-UPDATE-TAGS-")],
     [sg.Button(size=(40, 1), key="-IMG_NAME-")],
     [sg.Button(size=(100, 2), key="-IMG_DIR-")]
 ]
@@ -61,6 +46,12 @@ layout = [
 # Create the window
 window = sg.Window("INDEXR", layout)
 
+img_path = None
+img_directory = None
+random_row = {
+    "id": None
+}
+query_class = TableQueries()
 # Display and interact with the Window using an Event Loop
 while True:
     event, values = window.read()
@@ -69,39 +60,65 @@ while True:
     if event == sg.WINDOW_CLOSED or event == "Quit":
         break
     elif event == "-IMG_NAME-":
-        subprocess.call(['open', "/Users/jayglickman/Library/CloudStorage/Dropbox/Pictures/Costume Album/2010_Inigo Montoya_1.jpg"])
+        if img_path:
+            subprocess.call(['open', img_path])
     elif event == "-IMG_DIR-":
-        print("in here")
-        subprocess.call(['open', "/Users/jayglickman/Library/CloudStorage/Dropbox/Pictures/Costume Album"])
+        if img_directory:
+            subprocess.call(['open', img_directory])
+    elif event == "-UPDATE-TAGS-":
+        tags = values["-TAGS-"].split(" ") if values["-TAGS-"] else []
+        print("tags are", tags)
+
+        created_tag_ids = []
+        for tag in tags:
+            res = query_class.create_tag(
+                {
+                    "tag_type": "user",
+                    "tag_name": tag
+                }
+            )
+            if res:
+                created_tag_ids.append(res)
+        print("created tag ids", created_tag_ids)
+        for tag_id in created_tag_ids:
+            res = query_class.assign_tag_to_file(tag_id, random_row["id"])
+            print("assign_tag_to_file", res)
     # Output a message to the window
     elif event == "Random Image":
-        query_class = TableQueries()
         random_row = query_class.get_random_image_ref()
+        if not random_row:
+            continue
+        image_tags = query_class.get_tags_for_image_id(random_row["id"])
+        image_tag_names = get_tag_names_from_dict(image_tags)
+        print("image tags", image_tags, image_tag_names)
         print("random row file--->", random_row)
-        img_directory, img_name = split_path_and_file(random_row.get("file"))
-        preview_img = load_image_from_path(random_row.get("file"))
+        img_path = random_row.get("file")
+        img_directory, img_name = split_path_and_file(img_path)
+        preview_img = load_image_from_path(img_path)
         print("type-->", type(preview_img))
         print("image--->", preview_img)
         layout = [
-            [sg.Text("What's your name?")],
-            [sg.Input(key="-INPUT-")],
+            [sg.Text("Behold!")],
             [sg.Text(size=(40, 1), key="-OUTPUT-")],
             [sg.Button("Random Image"), sg.Button("Quit")],
             [sg.Image(preview_img, key='-IMAGE-')],
+            [sg.Input(key="-TAGS-"), sg.Button(key="-UPDATE-TAGS-")],
             [sg.Button("Load Image", size=(40, 1), key="-IMG_NAME-")],
-            [sg.Text(size=(40, 1), key="-IMG_DIR")]
+            [sg.Text(size=(40, 1), key="-IMG_DIR-")]
         ]
         window["-PREVIEW-"].update(
             data=preview_img.getvalue()
         )
-        print("image name", img_name)
+        print("image path", img_path)
         print("image dire", img_directory)
         window["-IMG_NAME-"].update(img_name)
         window["-IMG_DIR-"].update(img_directory)
+        window["-UPDATE-TAGS-"].update("Update Tags")
+        window["-TAGS-"].update(' '.join(image_tag_names))
 
-    window["-OUTPUT-"].update(
-        "Hello " + values["-INPUT-"] + "! Thanks for trying PySimpleGUI"
-    )
+    # window["-OUTPUT-"].update(
+    #     "Hello " + values["-TAGS-"] + "! Thanks for trying PySimpleGUI"
+    # )
 
 # Finish up by removing from the screen
 window.close()

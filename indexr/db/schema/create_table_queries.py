@@ -1,7 +1,8 @@
-# store files in here
-files_table_create = ("""
+from .schema import FilesTable, TagsFilesTable, TagsTable
+
+files_table_create = (f"""
         CREATE TABLE IF NOT EXISTS
-            files (
+            {FilesTable.name} (
                 id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 hash varchar,
                 url TEXT,
@@ -11,13 +12,13 @@ files_table_create = ("""
                 date_removed timestamp
             );
 
-        CREATE INDEX ON files (filetype);
+        CREATE INDEX ON {FilesTable.name} (filetype);
 """)
 
 # tags are descriptors
-tag_table_create = ("""
+tag_table_create = (f"""
         CREATE TABLE IF NOT EXISTS
-            tags (
+            {TagsTable.name} (
                 id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                 tag_type TEXT,
                 tag_name TEXT,
@@ -27,14 +28,14 @@ tag_table_create = ("""
                 UNIQUE(tag_type, tag_name)
             );
 
-        CREATE INDEX ON tags (tag_type);
-        CREATE INDEX ON tags (tag_name);
+        CREATE INDEX ON {TagsTable.name} (tag_type);
+        CREATE INDEX ON {TagsTable.name} (tag_name);
 """)
 
 # tracks tags assigned to files
-tags_files_create = ("""
+tags_files_create = (f"""
         CREATE TABLE IF NOT EXISTS
-            tags_files (
+            {TagsFilesTable.name} (
             id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
             files_id INT,
             tags_id INT,
@@ -44,9 +45,9 @@ tags_files_create = ("""
             date_removed TIMESTAMP WITH TIME ZONE
             );
 
-        CREATE INDEX ON tags_files (tags_id);
-        CREATE INDEX ON tags_files (files_id);
-        CREATE INDEX ON tags_files (modified_by);
+        CREATE INDEX ON {TagsFilesTable.name} (tags_id);
+        CREATE INDEX ON {TagsFilesTable.name} (files_id);
+        CREATE INDEX ON {TagsFilesTable.name} (modified_by);
 """)
 
 

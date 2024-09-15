@@ -6,6 +6,9 @@ import psycopg2
 import urllib.parse
 import xattr
 
+from ..schema.schema import DBName
+
+
 # path to files we wish to tag
 LOCAL_ROOT_INDEX = os.environ.get("local_root_index")
 REMOTE_ROOT_INDEX = "https://www.dropbox.com/home"
@@ -19,7 +22,7 @@ def seed_files_from_files():
     logging.info("starting 'seed_files_from_files'")
     try:
         conn = psycopg2.connect(
-            dbname="indexr",
+            dbname=DBName.name,
             user="postgres",
             password=os.environ["root_db_pw"],
             host="localhost",

@@ -4,7 +4,7 @@ import logging
 import os
 
 from schema.create_table_queries import create_table_queries
-
+from schema.schema import DBName
 
 class DatabaseManipulation:
     def __init__(self):
@@ -39,7 +39,7 @@ class DatabaseManipulation:
 
         try:
             conn = psycopg2.connect(
-                database="indexr",
+                database=DBName.name,
                 user="postgres",
                 password=os.environ["root_db_pw"],
                 host="localhost",
@@ -79,6 +79,9 @@ class DatabaseManipulation:
         for query in create_table_queries:
             self.cur.execute(query)
             self.conn.commit()
+        verify_tables_query = "SELECT count(*) FROM files"
+        self.cur.execute(verify_tables_query)
+        print("verify table creation", self.cur.fetchall())
         logging.info("tables created successfully")
 
 
