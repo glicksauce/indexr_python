@@ -3,6 +3,7 @@ import io
 import PySimpleGUI as sg
 from PIL import Image
 import subprocess
+import base64
 
 from indexr.utils import get_tag_names_from_dict, load_creds_to_environ, split_path_and_file
 from indexr.db.query_manipulation import TableQueries
@@ -16,12 +17,13 @@ def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW
     print("file path", file_path)
     try:
         with Image.open(file_path) as img:  # PIL solution
-            logging.debug("exif", img.getexif)
+            logging.debug("exif", img.getexif())
             bio = io.BytesIO()
             cur_width, cur_height = img.size
             new_width, new_height = resize_x, resize_y
             scale = min(new_height/cur_height, new_width/cur_width)
             img = img.resize((int(cur_width*scale), int(cur_height*scale)))
+            print("image --->", img)
             img.save(bio, format="PNG")
             return bio
     except Exception as e:
@@ -31,6 +33,50 @@ def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW
         image_bytes = io.BytesIO()
         image.save(image_bytes, format='PNG')
         return image_bytes
+
+
+def resize_image(image, resize_x, resize_y):
+    print("image", image)
+    try:
+        with Image.open(io.BytesIO(base64.b64decode(image))) as img:
+            logging.debug("exif", img.getexif)
+            print("exif exif", img.getexif())
+            bio = io.BytesIO()
+            cur_width, cur_height = img.size
+            new_width, new_height = resize_x, resize_y
+            scale = min(new_height/cur_height, new_width/cur_width)
+            img = img.resize((int(cur_width*scale), int(cur_height*scale)))
+            print("img--->", img)
+            img.save(bio, format="PNG")
+            return bio
+    except Exception as e:
+        logging.warning(f"resize_image unable to load image {e}")
+
+
+def resize_image_bytes(image_bytes, new_size, format=None):
+    """
+    Resizes an image represented as bytes.
+
+    :param image_bytes: The original image in bytes.
+    :param new_size: A tuple (width, height) representing the new size.
+    :param format: Optional. The format to save the resized image. If None, it uses the original format.
+    :return: The resized image in bytes.
+    """
+    # Create a BytesIO object from the original bytes
+    with io.BytesIO(image_bytes) as input_buffer:
+        with Image.open(input_buffer) as img:
+            # Preserve the image's original format if not specified
+            img_format = format if format else img.format
+
+            # Resize the image
+            resized_img = img.resize(new_size, Image.ANTIALIAS)
+
+            # Save the resized image to a new BytesIO object
+            with io.BytesIO() as output_buffer:
+                resized_img.save(output_buffer, format=img_format)
+                resized_bytes = output_buffer.getvalue()
+
+    return resized_bytes
 
 
 def update_tag_button(index, tag):
@@ -48,10 +94,12 @@ def update_tag_button(index, tag):
 
 
 tag_count = 10
-tags_row = [sg.Button("tags", key="-TAGS-")]
+tags_row = []
+# resized_x_mark = resize_image_bytes(sg.red_x, 50)
 for tag_button_index in range(tag_count):
-    tags_row.append(sg.Button(f"{tag_button_index}", key=tag_button_index, visible=False))
-tags_row.append(sg.Button("update tags", key="-UPDATE-TAGS-"))
+    tags_row.append(sg.Button(image_data=sg.red_x, image_subsample=2, button_color=sg.theme_background_color(), border_width=0, pad=0,
+        key=f"{tag_button_index}-X", tooltip='Delete this tag', visible=False))
+    tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=tag_button_index, visible=False))
 tag_col = [
     sg.Column(
         [
@@ -66,7 +114,7 @@ layout = [
     [sg.Text(size=(40, 1), key="-OUTPUT-")],
     [sg.Button("Random Image"), sg.Button("Quit")],
     [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
-    [sg.Input(size=(40, 1), key="-NEW-TAGS-")],
+    [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
     tag_col,
     [sg.Button(size=(40, 1), key="-IMG_NAME-")],
     [sg.Button(size=(100, 2), key="-IMG_DIR-")]
@@ -148,11 +196,10 @@ while True:
         window["-UPDATE-TAGS-"].update("Update Tags")
         # cleanup old tags before showing new:
         for index in range(tag_count):
+            window[f"{index}-X"].update(visible=False)
             window[index].update(visible=False)
         for index, tag in enumerate(image_tags):
+            window[f"{index}-X"].update(visible=True)
             window[index].update(tag.get("tag_name"), visible=True)
         for tag_button in tag_buttons:
             window.extend_layout(window['-TAGS-'], [tag_button])
-
-# Finish up by removing from the screen
-window.close()
