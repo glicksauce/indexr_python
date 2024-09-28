@@ -88,8 +88,8 @@ def update_tag_button(index, tag):
     #     ]
     # )
 
-    tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X', 5), tooltip='Delete this item'),
-                            sg.B(f'{tag.get("tag_name")}', button_color=("white", "gray"), pad=0, k=('-STATUS-', 5))]], k=(f'{index}', 5)))]
+    tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X-'), tooltip='Delete this item'),
+                            sg.B(f'{tag.get("tag_name")}', button_color=("white", "gray"), pad=0, k=('-STATUS-', 5))]], k=(f'{index}-TAG-')))]
     return tab
 
 
@@ -98,8 +98,8 @@ tags_row = []
 # resized_x_mark = resize_image_bytes(sg.red_x, 50)
 for tag_button_index in range(tag_count):
     tags_row.append(sg.Button(image_data=sg.red_x, image_subsample=2, button_color=sg.theme_background_color(), border_width=0, pad=0,
-        key=f"{tag_button_index}-X", tooltip='Delete this tag', visible=False))
-    tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=tag_button_index, visible=False))
+        key=f"{tag_button_index}-X-", tooltip='Delete this tag', visible=False))
+    tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=f"{tag_button_index}-TAG-", visible=False))
 tag_col = [
     sg.Column(
         [
@@ -163,6 +163,21 @@ while True:
             res = query_class.assign_tag_to_file(tag_id, random_row["id"])
             print("assign_tag_to_file", res)
     # Output a message to the window
+    elif "-X-" in event:
+        # DELETE TAG
+        index = event.replace("-X-", "")
+        print(f"index is:{index}:end")
+        if not window[f"{index}-TAG-"].metadata:
+            print("invalid tag skipping")
+            continue
+        print("about to remvoe tag", window[f"{index}-TAG-"].metadata)
+        res = query_class.remove_tag_from_file(window[f"{index}-TAG-"].metadata)
+        if res:
+            window[f"{index}-X-"].update(visible=False)
+            window[f"{index}-TAG-"].metadata = None
+            window[f"{index}-TAG-"].update(visible=False)
+        else:
+            print("error: unable to delete")
     elif event == "Random Image":
         image_tags = []
         random_row = query_class.get_random_image_ref()
@@ -196,10 +211,11 @@ while True:
         window["-UPDATE-TAGS-"].update("Update Tags")
         # cleanup old tags before showing new:
         for index in range(tag_count):
-            window[f"{index}-X"].update(visible=False)
-            window[index].update(visible=False)
+            window[f"{index}-X-"].update(visible=False)
+            window[f"{index}-TAG-"].update(visible=False)
         for index, tag in enumerate(image_tags):
-            window[f"{index}-X"].update(visible=True)
-            window[index].update(tag.get("tag_name"), visible=True)
+            window[f"{index}-X-"].update(visible=True)
+            window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
+            window[f"{index}-TAG-"].metadata = tag["id"]
         for tag_button in tag_buttons:
             window.extend_layout(window['-TAGS-'], [tag_button])

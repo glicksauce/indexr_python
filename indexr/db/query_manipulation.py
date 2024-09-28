@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import datetime
 import psycopg2
 import psycopg2.extras
 import os
@@ -78,13 +79,6 @@ class TableQueries:
             self.conn.commit()
             self.close_conn()
             return associated_tag_id
-
-            self.new_conn()
-            self.cur.execute(
-                "SELECT * FROM TAGS"
-            )
-            pprint(f"all tags: {[dict(row) for row in self.cur.fetchall()]}")
-            self.close_conn()
         except Exception as e:
             pprint("create_tag failed", e)
 
@@ -99,7 +93,7 @@ class TableQueries:
             # tags for image
             self.cur.execute(
                 f"SELECT {TagsFilesTable.name}.id, tags.tag_name, tags.id from {TagsFilesTable.name}"
-                f" LEFT JOIN tags on {TagsFilesTable.name}.id = tags.id"
+                f" LEFT JOIN tags on {TagsFilesTable.name}.tags_id = tags.id"
                 f" WHERE {TagsFilesTable.name}.files_id = {id}"
             )
             row_tags = [dict(row) for row in self.cur.fetchall()]
@@ -132,6 +126,53 @@ class TableQueries:
         except Exception as e:
             pprint("assign_tag_to_file failed", e)
 
+    def update_tag_from_file(self, id, modified_by="user"):
+        f"""
+        updates entry in {TagsFilesTable.name} table, setting removed date:
+        """
+        try:
+            self.new_conn()
+            # tags for image
+            self.cur.execute(
+                f"UPDATE {TagsFilesTable.name}"
+                f" SET date_removed = '{datetime.datetime.now()}', modified_by = '{modified_by}'"
+                f" WHERE id = '{id}'"
+                f" Returning id"
+            )
+            self.conn.commit()
+            res = self.cur.fetchone()[0]
+            pprint(f"{TagsFilesTable.name} row updated, id: {res}")
+
+            # test delete this:
+            self.cur.execute(
+                f"SELECT * FROM {TagsFilesTable.name} where id = '{id}'"
+            )
+            pprint(f"test query:--> {self.cur.fetchall()}")
+            self.close_conn()
+            self.close_conn()
+            return res
+        except Exception as e:
+            pprint("update_tag_from_file failed", e)
+
+    def remove_tag_from_file(self, id, modified_by="user"):
+        f"""
+        removes entry in {TagsFilesTable.name} table:
+        """
+        try:
+            self.new_conn()
+            # tags for image
+            self.cur.execute(
+                f"DELETE FROM {TagsFilesTable.name}"
+                f" WHERE id = '{id}'"
+                f" Returning id"
+            )
+            self.conn.commit()
+            res = self.cur.fetchone()[0]
+            pprint(f"{TagsFilesTable.name} row deleted, id: {res}")
+            return res
+        except Exception as e:
+            pprint("remove_tag_from_file failed", e)
+
     def read_all_tags_files(self):
         f"""
         logs out all entries in {TagsFilesTable.name} table
@@ -148,7 +189,7 @@ class TableQueries:
                 pprint(row)
             self.close_conn()
         except Exception as e:
-            pprint("assign_tag_to_file failed", e)
+            pprint("remove_tag_from_file failed", e)
 
 
 if __name__ == "__main__":
