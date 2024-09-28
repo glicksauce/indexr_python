@@ -21,7 +21,7 @@ class WindowPane:
     ):
         self.width = width
         self.height = height
-        self.tags_count = 3
+        self.tags_count = 10
         self.tags_row = self.build_tags_row()
         self.tags_column = self.build_tags_column(self.tags_row)
         self.layout = self.initial_window_view()
@@ -174,18 +174,27 @@ while True:
 
         created_tag_ids = []
         for tag in tags:
-            res = query_class.create_tag(
+            tag_id = query_class.create_tag(
                 {
                     "tag_type": "user",
                     "tag_name": tag
                 }
             )
-            if res:
-                created_tag_ids.append(res)
-        print("created tag ids", created_tag_ids)
-        for tag_id in created_tag_ids:
-            res = query_class.assign_tag_to_file(tag_id, random_row["id"])
-            print("assign_tag_to_file", res)
+            if tag_id:
+                created_tag_ids.append(tag_id)
+                new_tag = {"id": tag_id, "tag_name": tag}
+                if new_tag not in image_tags:
+                    print("appending", new_tag, " to image_tags")
+                    image_tags.append(new_tag)
+            added_tag_id = query_class.assign_tag_to_file(tag_id, random_row["id"])
+            print("assign_tag_to_file", added_tag_id)
+
+        for index, tag in enumerate(image_tags):
+            window[f"{index}-X-"].update(visible=True)
+            window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
+            window[f"{index}-TAG-"].metadata = tag["id"]
+        for tag_button in tag_buttons:
+            window.extend_layout(window['-TAGS-'], [tag_button])
     # Output a message to the window
     elif "-X-" in event:
         # DELETE TAG
