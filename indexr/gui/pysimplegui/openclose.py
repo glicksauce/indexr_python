@@ -13,6 +13,70 @@ load_creds_to_environ()
 PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT = 400, 400
 
 
+class WindowPane:
+    def __init__(
+        self,
+        width=600,
+        height=600,
+    ):
+        self.width = width
+        self.height = height
+        self.tags_count = 3
+        self.tags_row = self.build_tags_row()
+        self.tags_column = self.build_tags_column(self.tags_row)
+        self.layout = self.initial_window_view()
+
+    def build_tags_row(self):
+        """
+        builds a row of tags
+        """
+        tags_row = []
+        for tag_button_index in range(self.tags_count):
+            tags_row.append(sg.Button(image_data=sg.red_x, image_subsample=2, button_color=sg.theme_background_color(), border_width=0, pad=0,
+                key=f"{tag_button_index}-X-", tooltip='Delete this tag', visible=False))
+            tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=f"{tag_button_index}-TAG-", visible=False))
+        return tags_row
+    
+    def update_tag_button(self, index, tag):
+        tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X-'), tooltip='Delete this item'),
+                                sg.B(f'{tag.get("tag_name")}', button_color=("white", "gray"), pad=0, k=('-STATUS-', 5))]], k=(f'{index}-TAG-')))]
+        return tab
+
+    def build_tags_column(self, rows: list):
+        return [
+            sg.Column(
+                [
+                    rows
+                ],
+                expand_x=True
+            )
+        ]
+
+    def initial_window_view(self):
+        return [
+            [sg.Text("What's your name?")],
+            [sg.Text(size=(40, 1), key="-OUTPUT-")],
+            [sg.Button("Random Image"), sg.Button("Quit")],
+            [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
+            [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
+            self.tags_column,
+            [sg.Button(size=(40, 1), key="-IMG_NAME-")],
+            [sg.Button(size=(100, 2), key="-IMG_DIR-")]
+        ]
+
+    def display_image_view(self):
+        self.layout = [
+            [sg.Text("Behold!")],
+            [sg.Text(size=(40, 1), key="-OUTPUT-")],
+            [sg.Button("Random Image"), sg.Button("Quit")],
+            [sg.Image(preview_img, key='-IMAGE-')],
+            [sg.Input(size=(25, 1), key="-NEW-TAGS-")],
+            self.tags_column,
+            [sg.Button("Load Image", size=(40, 1), key="-IMG_NAME-")],
+            [sg.Text(size=(40, 1), key="-IMG_DIR-")]
+        ]
+
+
 def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW_IMG_HEIGHT):
     print("file path", file_path)
     try:
@@ -79,49 +143,9 @@ def resize_image_bytes(image_bytes, new_size, format=None):
     return resized_bytes
 
 
-def update_tag_button(index, tag):
-    # tab = sg.Col(
-    #     [
-    #         sg.B("X", border_width=0, button_color=(sg.theme_text_color(), sg.theme_background_color()),
-    #         k=('-DEL-', tag['id']), tooltip='Delete this item'),
-    #         sg.B(tag['tag_name'], size=(10, 1), k=('-DESC-', tag['id'])),
-    #     ]
-    # )
-
-    tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X-'), tooltip='Delete this item'),
-                            sg.B(f'{tag.get("tag_name")}', button_color=("white", "gray"), pad=0, k=('-STATUS-', 5))]], k=(f'{index}-TAG-')))]
-    return tab
-
-
-tag_count = 10
-tags_row = []
-# resized_x_mark = resize_image_bytes(sg.red_x, 50)
-for tag_button_index in range(tag_count):
-    tags_row.append(sg.Button(image_data=sg.red_x, image_subsample=2, button_color=sg.theme_background_color(), border_width=0, pad=0,
-        key=f"{tag_button_index}-X-", tooltip='Delete this tag', visible=False))
-    tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=f"{tag_button_index}-TAG-", visible=False))
-tag_col = [
-    sg.Column(
-        [
-            tags_row
-        ],
-        expand_x=True
-    )
-]
-
-layout = [
-    [sg.Text("What's your name?")],
-    [sg.Text(size=(40, 1), key="-OUTPUT-")],
-    [sg.Button("Random Image"), sg.Button("Quit")],
-    [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
-    [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
-    tag_col,
-    [sg.Button(size=(40, 1), key="-IMG_NAME-")],
-    [sg.Button(size=(100, 2), key="-IMG_DIR-")]
-]
-
 # Create the window
-window = sg.Window("INDEXR", layout)
+base_window = WindowPane()
+window = sg.Window("INDEXR", base_window.layout)
 
 img_path = None
 img_directory = None
@@ -184,8 +208,6 @@ while True:
         if not random_row:
             continue
         image_tags = query_class.get_tags_for_image_id(random_row["id"])
-        # for index, tag in enumerate(image_tags):
-        #     tag_buttons.append(update_tag_button(index, tag))
         image_tag_names = get_tag_names_from_dict(image_tags)
         print("image tags", image_tags, image_tag_names)
         print("random row file--->", random_row)
@@ -193,16 +215,7 @@ while True:
         img_directory, img_name = split_path_and_file(img_path)
         preview_img = load_image_from_path(img_path)
         print("tag_buttons", tag_buttons)
-        layout = [
-            [sg.Text("Behold!")],
-            [sg.Text(size=(40, 1), key="-OUTPUT-")],
-            [sg.Button("Random Image"), sg.Button("Quit")],
-            [sg.Image(preview_img, key='-IMAGE-')],
-            [sg.Input(size=(25, 1), key="-NEW-TAGS-")],
-            tag_col,
-            [sg.Button("Load Image", size=(40, 1), key="-IMG_NAME-")],
-            [sg.Text(size=(40, 1), key="-IMG_DIR-")]
-        ]
+        base_window.layout = base_window.display_image_view()
         window["-PREVIEW-"].update(
             data=preview_img.getvalue()
         )
@@ -210,7 +223,7 @@ while True:
         window["-IMG_DIR-"].update(img_directory)
         window["-UPDATE-TAGS-"].update("Update Tags")
         # cleanup old tags before showing new:
-        for index in range(tag_count):
+        for index in range(base_window.tags_count):
             window[f"{index}-X-"].update(visible=False)
             window[f"{index}-TAG-"].update(visible=False)
         for index, tag in enumerate(image_tags):
