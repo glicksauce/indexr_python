@@ -77,6 +77,29 @@ class WindowPane:
         ]
 
 
+def load_image_to_preview(files_id):
+    image_tags = query_class.get_tags_for_image_id(files_id)
+    img_path = selected_files_row.get("file")
+    img_directory, img_name = split_path_and_file(img_path)
+    preview_img = load_image_from_path(img_path)
+    base_window.layout = base_window.display_image_view()
+    window["-PREVIEW-"].update(
+        data=preview_img.getvalue()
+    )
+    window["-IMG_NAME-"].update(img_name)
+    window["-IMG_DIR-"].update(img_directory)
+    window["-UPDATE-TAGS-"].update("Update Tags")
+    # cleanup old tags before showing new:
+    for index in range(base_window.tags_count):
+        window[f"{index}-X-"].update(visible=False)
+        window[f"{index}-TAG-"].update(visible=False)
+    for index, tag in enumerate(image_tags):
+        window[f"{index}-X-"].update(visible=True)
+        window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
+        window[f"{index}-TAG-"].metadata = tag["id"]
+    for tag_button in tag_buttons:
+        window.extend_layout(window['-TAGS-'], [tag_button])
+
 def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW_IMG_HEIGHT):
     print("file path", file_path)
     try:
@@ -149,7 +172,7 @@ window = sg.Window("INDEXR", base_window.layout)
 
 img_path = None
 img_directory = None
-random_row = {
+selected_files_row = {
     "id": None
 }
 query_class = TableQueries()
@@ -186,15 +209,18 @@ while True:
                 if new_tag not in image_tags:
                     print("appending", new_tag, " to image_tags")
                     image_tags.append(new_tag)
-            added_tag_id = query_class.assign_tag_to_file(tag_id, random_row["id"])
+            added_tag_id = query_class.assign_tag_to_file(tag_id, selected_files_row["id"])
             print("assign_tag_to_file", added_tag_id)
 
-        for index, tag in enumerate(image_tags):
-            window[f"{index}-X-"].update(visible=True)
-            window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
-            window[f"{index}-TAG-"].metadata = tag["id"]
-        for tag_button in tag_buttons:
-            window.extend_layout(window['-TAGS-'], [tag_button])
+        # update buttons without re-querying:
+        # for index, tag in enumerate(image_tags):
+        #     window[f"{index}-X-"].update(visible=True)
+        #     window[f"{index}-TAG-"].update(tag.get("tag_name") + "-" + str(tag["id"]), visible=True)
+        #     window[f"{index}-TAG-"].metadata = tag["id"]
+        # for tag_button in tag_buttons:
+        #     window.extend_layout(window['-TAGS-'], [tag_button])
+
+        load_image_to_preview(selected_files_row["id"])
     # Output a message to the window
     elif "-X-" in event:
         # DELETE TAG
@@ -203,7 +229,7 @@ while True:
         if not window[f"{index}-TAG-"].metadata:
             print("invalid tag skipping")
             continue
-        print("about to remvoe tag", window[f"{index}-TAG-"].metadata)
+        print("about to remove tag", window[f"{index}-TAG-"].metadata)
         res = query_class.remove_tag_from_file(window[f"{index}-TAG-"].metadata)
         if res:
             window[f"{index}-X-"].update(visible=False)
@@ -213,14 +239,14 @@ while True:
             print("error: unable to delete")
     elif event == "Random Image":
         image_tags = []
-        random_row = query_class.get_random_image_ref()
-        if not random_row:
+        selected_files_row = query_class.get_random_image_ref()
+        if not selected_files_row:
             continue
-        image_tags = query_class.get_tags_for_image_id(random_row["id"])
+        image_tags = query_class.get_tags_for_image_id(selected_files_row["id"])
         image_tag_names = get_tag_names_from_dict(image_tags)
         print("image tags", image_tags, image_tag_names)
-        print("random row file--->", random_row)
-        img_path = random_row.get("file")
+        print("random row file--->", selected_files_row)
+        img_path = selected_files_row.get("file")
         img_directory, img_name = split_path_and_file(img_path)
         preview_img = load_image_from_path(img_path)
         print("tag_buttons", tag_buttons)
