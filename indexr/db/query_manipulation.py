@@ -82,7 +82,7 @@ class TableQueries:
         except Exception as e:
             pprint("create_tag failed", e)
 
-    def get_tags_for_image_id(self, id):
+    def get_tags_for_image_id(self, files_id):
         """
         returns dict of tag data from :
             id:
@@ -94,10 +94,10 @@ class TableQueries:
             self.cur.execute(
                 f"SELECT {TagsFilesTable.name}.id, tags.tag_name, tags.id from {TagsFilesTable.name}"
                 f" LEFT JOIN tags on {TagsFilesTable.name}.tags_id = tags.id"
-                f" WHERE {TagsFilesTable.name}.files_id = {id}"
+                f" WHERE {TagsFilesTable.name}.files_id = {files_id}"
             )
             row_tags = [dict(row) for row in self.cur.fetchall()]
-            pprint(f"tags for row {id}: {row_tags}")
+            pprint(f"tags for {TagsFilesTable.name} where files_id={files_id}: {row_tags}")
             self.close_conn()
             return row_tags
         except Exception as e:
@@ -154,7 +154,7 @@ class TableQueries:
         except Exception as e:
             pprint("update_tag_from_file failed", e)
 
-    def remove_tag_from_file(self, id, modified_by="user"):
+    def remove_tag_from_file(self, tags_id, modified_by="user"):
         f"""
         removes entry in {TagsFilesTable.name} table:
         """
@@ -163,7 +163,7 @@ class TableQueries:
             # tags for image
             self.cur.execute(
                 f"DELETE FROM {TagsFilesTable.name}"
-                f" WHERE id = '{id}'"
+                f" WHERE tags_id = '{tags_id}'"
                 f" Returning id"
             )
             self.conn.commit()
