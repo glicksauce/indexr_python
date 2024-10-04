@@ -64,7 +64,7 @@ class WindowPane:
             [sg.Button(size=(100, 2), key="-IMG_DIR-")]
         ]
 
-    def display_image_view(self):
+    def display_image_view(self, preview_img):
         self.layout = [
             [sg.Text("Behold!")],
             [sg.Text(size=(40, 1), key="-OUTPUT-")],
@@ -77,12 +77,12 @@ class WindowPane:
         ]
 
 
-def load_image_to_preview(files_id):
-    image_tags = query_class.get_tags_for_image_id(files_id)
-    img_path = selected_files_row.get("file")
+def load_image_to_preview(file_row):
+    image_tags = query_class.get_tags_for_image_id(file_row["id"])
+    img_path = file_row.get("file")
     img_directory, img_name = split_path_and_file(img_path)
     preview_img = load_image_from_path(img_path)
-    base_window.layout = base_window.display_image_view()
+    base_window.layout = base_window.display_image_view(preview_img)
     window["-PREVIEW-"].update(
         data=preview_img.getvalue()
     )
@@ -99,6 +99,7 @@ def load_image_to_preview(files_id):
         window[f"{index}-TAG-"].metadata = tag["id"]
     for tag_button in tag_buttons:
         window.extend_layout(window['-TAGS-'], [tag_button])
+
 
 def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW_IMG_HEIGHT):
     print("file path", file_path)
@@ -220,7 +221,7 @@ while True:
         # for tag_button in tag_buttons:
         #     window.extend_layout(window['-TAGS-'], [tag_button])
 
-        load_image_to_preview(selected_files_row["id"])
+        load_image_to_preview(selected_files_row)
     # Output a message to the window
     elif "-X-" in event:
         # DELETE TAG
@@ -242,28 +243,29 @@ while True:
         selected_files_row = query_class.get_random_image_ref()
         if not selected_files_row:
             continue
-        image_tags = query_class.get_tags_for_image_id(selected_files_row["id"])
-        image_tag_names = get_tag_names_from_dict(image_tags)
-        print("image tags", image_tags, image_tag_names)
-        print("random row file--->", selected_files_row)
-        img_path = selected_files_row.get("file")
-        img_directory, img_name = split_path_and_file(img_path)
-        preview_img = load_image_from_path(img_path)
-        print("tag_buttons", tag_buttons)
-        base_window.layout = base_window.display_image_view()
-        window["-PREVIEW-"].update(
-            data=preview_img.getvalue()
-        )
-        window["-IMG_NAME-"].update(img_name)
-        window["-IMG_DIR-"].update(img_directory)
-        window["-UPDATE-TAGS-"].update("Update Tags")
-        # cleanup old tags before showing new:
-        for index in range(base_window.tags_count):
-            window[f"{index}-X-"].update(visible=False)
-            window[f"{index}-TAG-"].update(visible=False)
-        for index, tag in enumerate(image_tags):
-            window[f"{index}-X-"].update(visible=True)
-            window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
-            window[f"{index}-TAG-"].metadata = tag["id"]
-        for tag_button in tag_buttons:
-            window.extend_layout(window['-TAGS-'], [tag_button])
+        load_image_to_preview(selected_files_row)
+        # image_tags = query_class.get_tags_for_image_id(selected_files_row["id"])
+        # image_tag_names = get_tag_names_from_dict(image_tags)
+        # print("image tags", image_tags, image_tag_names)
+        # print("random row file--->", selected_files_row)
+        # img_path = selected_files_row.get("file")
+        # img_directory, img_name = split_path_and_file(img_path)
+        # preview_img = load_image_from_path(img_path)
+        # print("tag_buttons", tag_buttons)
+        # base_window.layout = base_window.display_image_view()
+        # window["-PREVIEW-"].update(
+        #     data=preview_img.getvalue()
+        # )
+        # window["-IMG_NAME-"].update(img_name)
+        # window["-IMG_DIR-"].update(img_directory)
+        # window["-UPDATE-TAGS-"].update("Update Tags")
+        # # cleanup old tags before showing new:
+        # for index in range(base_window.tags_count):
+        #     window[f"{index}-X-"].update(visible=False)
+        #     window[f"{index}-TAG-"].update(visible=False)
+        # for index, tag in enumerate(image_tags):
+        #     window[f"{index}-X-"].update(visible=True)
+        #     window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
+        #     window[f"{index}-TAG-"].metadata = tag["id"]
+        # for tag_button in tag_buttons:
+        #     window.extend_layout(window['-TAGS-'], [tag_button])
