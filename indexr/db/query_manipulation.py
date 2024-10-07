@@ -103,6 +103,27 @@ class TableQueries:
         except Exception as e:
             pprint("get_tags_for_image_id failed", e)
 
+    def get_files_from_tag(self, tags_files_id):
+        """
+        returns dict of rows from files table :
+            tags_files_id:
+        """
+        try:
+            self.new_conn()
+
+            # tags for image
+            self.cur.execute(
+                f"SELECT * from {FilesTable.name} a"
+                f" LEFT JOIN {TagsFilesTable.name} b ON a.id = b.files_id"
+                f" WHERE b.tags_id = {tags_files_id}"
+            )
+            row_tags = [dict(row) for row in self.cur.fetchall()]
+            pprint(f"tag count for where tags_files_id={tags_files_id}: {len(row_tags)}")
+            self.close_conn()
+            return row_tags
+        except Exception as e:
+            pprint("get_tags_for_image_id failed", e)
+
     def assign_tag_to_file(self, tag_id, image_id, modified_by="user"):
         f"""
         creates entry in {TagsFilesTable.name} table, linking tag to a file:
