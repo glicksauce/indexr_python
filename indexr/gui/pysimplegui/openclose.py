@@ -23,7 +23,9 @@ class WindowPane:
         self.height = height
         self.tags_count = 10
         self.tags_row = self.build_tags_row()
+        self.files_rows = self.build_files_row([["", "", ""]])
         self.tags_column = self.build_tags_column(self.tags_row)
+        self.files_column = self.build_files_column(self.files_rows)
         self.layout = self.initial_window_view()
 
     def build_tags_row(self):
@@ -37,6 +39,9 @@ class WindowPane:
             tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=f"{tag_button_index}-TAG-", visible=False))
         return tags_row
     
+    def build_files_row(self, row):
+        return row
+
     def update_tag_button(self, index, tag):
         tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X-'), tooltip='Delete this item'),
                                 sg.B(f'{tag.get("tag_name")}', button_color=("white", "gray"), pad=0, k=('-STATUS-', 5))]], k=(f'{index}-TAG-')))]
@@ -52,28 +57,59 @@ class WindowPane:
             )
         ]
 
+    def build_files_column(self, rows: list):
+        # Table headings
+        headings = ["Name", "Age", "City"]
+
+        table = [
+            sg.Table(
+                values=rows,
+                headings=headings,
+                max_col_width=40, 
+                auto_size_columns=True, 
+                expand_x=True, 
+                expand_y=True,
+                num_rows=5, 
+                key="-FILES-TABLE-"
+            ),
+        ]
+        return [
+            sg.Column(
+                [
+                    table
+                ],
+                expand_x=False
+            )
+        ]
+
     def initial_window_view(self):
         return [
-            [sg.Text("What's your name?")],
-            [sg.Text(size=(40, 1), key="-OUTPUT-")],
-            [sg.Button("Random Image"), sg.Button("Quit")],
-            [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
-            [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
-            self.tags_column,
-            [sg.Button(size=(40, 1), key="-IMG_NAME-")],
-            [sg.Button(size=(100, 2), key="-IMG_DIR-")]
+            [
+                sg.Col(
+                    [
+                        [sg.Text(size=(40, 1), key="-OUTPUT-")],
+                        [sg.Button("Random Image"), sg.Button("Quit")],
+                        [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
+                        [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
+                        self.tags_column,
+                        [sg.Button(size=(40, 1), key="-IMG_NAME-")],
+                        [sg.Button(size=(50, 2), key="-IMG_DIR-")]
+                    ]
+                ),
+                self.files_column,
+            ],
         ]
 
     def display_image_view(self, preview_img):
         self.layout = [
-            [sg.Text("Behold!")],
             [sg.Text(size=(40, 1), key="-OUTPUT-")],
             [sg.Button("Random Image"), sg.Button("Quit")],
             [sg.Image(preview_img, key='-IMAGE-')],
             [sg.Input(size=(25, 1), key="-NEW-TAGS-")],
             self.tags_column,
             [sg.Button("Load Image", size=(40, 1), key="-IMG_NAME-")],
-            [sg.Text(size=(40, 1), key="-IMG_DIR-")]
+            [sg.Text(size=(40, 1), key="-IMG_DIR-")],
+            self.files_column,
         ]
 
 
@@ -269,3 +305,9 @@ while True:
         #     window[f"{index}-TAG-"].metadata = tag["id"]
         # for tag_button in tag_buttons:
         #     window.extend_layout(window['-TAGS-'], [tag_button])
+    elif "-TAG-" in event:
+        button_index = event.replace("-TAG-", "")
+        print(f"tag {button_index} clicked")
+        tags_files_id = window[f"{button_index}-TAG-"]._metadata
+        files_with_tag = query_class.get_files_from_tag(tags_files_id)
+        print("files", files_with_tag)
