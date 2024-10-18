@@ -50,7 +50,7 @@ class WindowPane:
             else:
                 img_directory = ""
                 img_name = ""
-            res.append([img_directory, img_name])
+            res.append([img_directory, img_name, row])
         return res
 
     def update_tag_button(self, index, tag):
@@ -78,6 +78,7 @@ class WindowPane:
                 headings=headings,
                 auto_size_columns=True,
                 justification="right",
+                enable_events=True,
                 expand_x=True,
                 expand_y=True,
                 num_rows=5,
@@ -291,31 +292,6 @@ while True:
         if not selected_files_row:
             continue
         load_image_to_preview(selected_files_row)
-        # image_tags = query_class.get_tags_for_image_id(selected_files_row["id"])
-        # image_tag_names = get_tag_names_from_dict(image_tags)
-        # print("image tags", image_tags, image_tag_names)
-        # print("random row file--->", selected_files_row)
-        # img_path = selected_files_row.get("file")
-        # img_directory, img_name = split_path_and_file(img_path)
-        # preview_img = load_image_from_path(img_path)
-        # print("tag_buttons", tag_buttons)
-        # base_window.layout = base_window.display_image_view()
-        # window["-PREVIEW-"].update(
-        #     data=preview_img.getvalue()
-        # )
-        # window["-IMG_NAME-"].update(img_name)
-        # window["-IMG_DIR-"].update(img_directory)
-        # window["-UPDATE-TAGS-"].update("Update Tags")
-        # # cleanup old tags before showing new:
-        # for index in range(base_window.tags_count):
-        #     window[f"{index}-X-"].update(visible=False)
-        #     window[f"{index}-TAG-"].update(visible=False)
-        # for index, tag in enumerate(image_tags):
-        #     window[f"{index}-X-"].update(visible=True)
-        #     window[f"{index}-TAG-"].update(tag.get("tag_name"), visible=True)
-        #     window[f"{index}-TAG-"].metadata = tag["id"]
-        # for tag_button in tag_buttons:
-        #     window.extend_layout(window['-TAGS-'], [tag_button])
     elif "-TAG-" in event:
         button_index = event.replace("-TAG-", "")
         print(f"tag {button_index} clicked")
@@ -324,3 +300,8 @@ while True:
         print("files", files_with_tag)
         file_table_rows = base_window.build_files_row(files_with_tag)
         window["-FILES-TABLE-"].update(values=file_table_rows)
+    elif "-FILES-TABLE-" in event:
+        selected_file_index = values["-FILES-TABLE-"][0]
+        print("file selected", file_table_rows[selected_file_index])
+        load_image_to_preview(file_table_rows[selected_file_index][2])
+
