@@ -23,7 +23,7 @@ class WindowPane:
         self.height = height
         self.tags_count = 10
         self.tags_row = self.build_tags_row()
-        self.files_rows = self.build_files_row([["", "", ""]])
+        self.files_rows = self.build_files_row({})
         self.tags_column = self.build_tags_column(self.tags_row)
         self.files_column = self.build_files_column(self.files_rows)
         self.layout = self.initial_window_view()
@@ -39,8 +39,19 @@ class WindowPane:
             tags_row.append(sg.Button(f"{tag_button_index}", pad=0, key=f"{tag_button_index}-TAG-", visible=False))
         return tags_row
     
-    def build_files_row(self, row):
-        return row
+    def build_files_row(self, rows):
+        """
+        :row dict[]:
+        """
+        res = []
+        for row in rows:
+            if row.get("file"):
+                img_directory, img_name = split_path_and_file(row["file"])
+            else:
+                img_directory = ""
+                img_name = ""
+            res.append([img_directory, img_name])
+        return res
 
     def update_tag_button(self, index, tag):
         tab = [sg.pin(sg.Col([[sg.B("X", border_width=0, pad=0, button_color=(sg.theme_text_color(), sg.theme_background_color()), k=(f'{index}-X-'), tooltip='Delete this item'),
@@ -59,17 +70,17 @@ class WindowPane:
 
     def build_files_column(self, rows: list):
         # Table headings
-        headings = ["Name", "Age", "City"]
+        headings = ["Path", "File"]
 
         table = [
             sg.Table(
                 values=rows,
                 headings=headings,
-                max_col_width=40, 
-                auto_size_columns=True, 
-                expand_x=True, 
+                auto_size_columns=True,
+                justification="right",
+                expand_x=True,
                 expand_y=True,
-                num_rows=5, 
+                num_rows=5,
                 key="-FILES-TABLE-"
             ),
         ]
@@ -78,7 +89,7 @@ class WindowPane:
                 [
                     table
                 ],
-                expand_x=False
+                expand_x=True
             )
         ]
 
@@ -311,3 +322,5 @@ while True:
         tags_files_id = window[f"{button_index}-TAG-"]._metadata
         files_with_tag = query_class.get_files_from_tag(tags_files_id)
         print("files", files_with_tag)
+        file_table_rows = base_window.build_files_row(files_with_tag)
+        window["-FILES-TABLE-"].update(values=file_table_rows)
