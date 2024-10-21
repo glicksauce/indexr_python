@@ -50,7 +50,7 @@ class WindowPane:
             else:
                 img_directory = ""
                 img_name = ""
-            res.append([img_directory, img_name, row])
+            res.append([img_directory, img_name, row.get("tags_count"), *row])
         return res
 
     def update_tag_button(self, index, tag):
@@ -70,7 +70,7 @@ class WindowPane:
 
     def build_files_column(self, rows: list):
         # Table headings
-        headings = ["Path", "File"]
+        headings = ["Path", "File", "Tags"]
 
         table = [
             sg.Table(
@@ -297,8 +297,12 @@ while True:
         print(f"tag {button_index} clicked")
         tags_files_id = window[f"{button_index}-TAG-"]._metadata
         files_with_tag = query_class.get_files_from_tag(tags_files_id)
-        print("files", files_with_tag)
+        for file_row in files_with_tag:
+            row_tags = query_class.get_tags_for_image_id(file_row["files_id"])
+            file_row["tags_count"] = len(row_tags)
+        print("files-->", files_with_tag)
         file_table_rows = base_window.build_files_row(files_with_tag)
+        print("file_table_rows-->", file_table_rows)
         window["-FILES-TABLE-"].update(values=file_table_rows)
     elif "-FILES-TABLE-" in event:
         selected_file_index = values["-FILES-TABLE-"][0]
