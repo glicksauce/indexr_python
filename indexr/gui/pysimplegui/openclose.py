@@ -1,5 +1,6 @@
 import logging
 import io
+import operator
 import PySimpleGUI as sg
 from PIL import Image
 import subprocess
@@ -27,6 +28,7 @@ class WindowPane:
         self.tags_column = self.build_tags_column(self.tags_row)
         self.files_column = self.build_files_column(self.files_rows)
         self.layout = self.initial_window_view()
+        self.table_sort_context = [-1, 'asc'] # (column_index, sort_order)
 
     def build_tags_row(self):
         """
@@ -50,7 +52,7 @@ class WindowPane:
             else:
                 img_directory = ""
                 img_name = ""
-            res.append([img_directory, img_name, row.get("tags_count"), *row])
+            res.append([img_directory, img_name, row.get("tags_count"), row])
         return res
 
     def update_tag_button(self, index, tag):
@@ -79,6 +81,7 @@ class WindowPane:
                 auto_size_columns=True,
                 justification="right",
                 enable_events=True,
+                enable_click_events=True,
                 expand_x=True,
                 expand_y=True,
                 num_rows=5,
@@ -124,6 +127,28 @@ class WindowPane:
             self.files_column,
         ]
 
+    def sort_table(self, table, cols):
+        """ sort a table by multiple columns
+            table: a list of lists (or tuple of tuples) where each inner list
+                represents a row
+            cols:  a list (or tuple) specifying the column numbers to sort by
+                e.g. (1,0) would sort by column 1, then by column 0
+        """
+        for col in reversed(cols):
+            reverse_sort = False
+            try:
+                if (
+                    self.table_sort_context[0] == col
+                    and self.table_sort_context[1] == 'asc'
+                ):
+                    reverse_sort = True
+                print("col", col, "table sort context", self.table_sort_context, "reversing sort", reverse_sort)
+                table = sorted(table, key=operator.itemgetter(col), reverse=reverse_sort)
+                self.table_sort_context = (col, 'desc' if reverse_sort else 'asc')
+            except Exception as e:
+                sg.popup_error('Error in sort_table', 'Exception in sort_table', e)
+        return table
+    
 
 def load_image_to_preview(file_row):
     image_tags = query_class.get_tags_for_image_id(file_row["id"])
@@ -217,7 +242,7 @@ def resize_image_bytes(image_bytes, new_size, format=None):
 
 # Create the window
 base_window = WindowPane()
-window = sg.Window("INDEXR", base_window.layout)
+window = sg.Window("INDEXR", base_window.layout, resizable=True)
 
 img_path = None
 img_directory = None
@@ -298,14 +323,22 @@ while True:
         tags_files_id = window[f"{button_index}-TAG-"]._metadata
         files_with_tag = query_class.get_files_from_tag(tags_files_id)
         for file_row in files_with_tag:
-            row_tags = query_class.get_tags_for_image_id(file_row["files_id"])
+            row_tags = query_class.get_tags_for_image_id(file_row["id"])
             file_row["tags_count"] = len(row_tags)
         print("files-->", files_with_tag)
         file_table_rows = base_window.build_files_row(files_with_tag)
         print("file_table_rows-->", file_table_rows)
         window["-FILES-TABLE-"].update(values=file_table_rows)
-    elif "-FILES-TABLE-" in event:
-        selected_file_index = values["-FILES-TABLE-"][0]
-        print("file selected", file_table_rows[selected_file_index])
-        load_image_to_preview(file_table_rows[selected_file_index][2])
+    elif event[0] == "-FILES-TABLE-":
+        if event[2][0] == -1 and event[2][1] != -1:  # Header was clicked and wasn't the "row" column
+            col_num_clicked = event[2][1]
+            new_table = base_window.sort_table(file_table_rows, [col_num_clicked])
+            window['-FILES-TABLE-'].update(new_table)
+            data = [file_table_rows[0]] + new_table
+        elif event[2][0]:
+            selected_file_index = event[2][0]
+            print("selected_file_index", selected_file_index)
+            print("file selected", file_table_rows[selected_file_index])
+            load_image_to_preview(file_table_rows[selected_file_index][3])
 
+        # window['-CLICKED-'].update(f'{event[2][0]},{event[2][1]}')c

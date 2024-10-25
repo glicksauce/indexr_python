@@ -113,7 +113,7 @@ class TableQueries:
 
             # tags for image
             self.cur.execute(
-                f"SELECT * from {FilesTable.name} a"
+                f"SELECT a.* from {FilesTable.name} a"
                 f" LEFT JOIN {TagsFilesTable.name} b ON a.id = b.files_id"
                 f" WHERE b.tags_id = {tags_files_id}"
             )
