@@ -260,11 +260,15 @@ while True:
     if event == sg.WINDOW_CLOSED or event == "Quit":
         break
     elif event == "-IMG_NAME-":
-        if img_path:
-            subprocess.call(['open', img_path])
+        if selected_files_row:
+            img_path = selected_files_row.get("file")
+            if img_path:
+                subprocess.call(['open', img_path])
     elif event == "-IMG_DIR-":
-        if img_directory:
-            subprocess.call(['open', img_directory])
+        if selected_files_row:
+            img_directory, img_name = split_path_and_file(selected_files_row["file"])
+            if img_directory:
+                subprocess.call(['open', img_directory])
     elif event == "-UPDATE-TAGS-":
         tags = values["-NEW-TAGS-"].split(" ") if values["-NEW-TAGS-"] else []
         print("added tags are", tags)
@@ -335,10 +339,12 @@ while True:
             new_table = base_window.sort_table(file_table_rows, [col_num_clicked])
             window['-FILES-TABLE-'].update(new_table)
             data = [file_table_rows[0]] + new_table
-        elif event[2][0]:
+            file_table_rows = new_table
+        elif event[2][0] is not None:
             selected_file_index = event[2][0]
             print("selected_file_index", selected_file_index)
             print("file selected", file_table_rows[selected_file_index])
             load_image_to_preview(file_table_rows[selected_file_index][3])
-
+        else:
+            print("else", event[2])
         # window['-CLICKED-'].update(f'{event[2][0]},{event[2][1]}')c
