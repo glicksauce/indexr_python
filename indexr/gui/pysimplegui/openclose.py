@@ -107,8 +107,9 @@ class WindowPane:
                         [sg.Image(key="-PREVIEW-", size=(PREVIEW_IMG_WIDTH, PREVIEW_IMG_HEIGHT))],
                         [sg.Input(size=(40, 1), key="-NEW-TAGS-"), sg.Button("update tags", key="-UPDATE-TAGS-")],
                         self.tags_column,
+                        [sg.Input(size=(40, 1), key="-SEARCH-TAGS-INPUT-"), sg.Button("search tags", key="-SEARCH-TAGS-BUTTON-")],
                         [sg.Button(size=(40, 1), key="-IMG_NAME-")],
-                        [sg.Button(size=(50, 2), key="-IMG_DIR-")]
+                        [sg.Text(size=(50, 2), auto_size_text=True, key="-IMG_DIR-")]
                     ]
                 ),
                 self.files_column,
@@ -122,6 +123,7 @@ class WindowPane:
             [sg.Image(preview_img, key='-IMAGE-')],
             [sg.Input(size=(25, 1), key="-NEW-TAGS-")],
             self.tags_column,
+            [sg.Input(size=(40, 1), key="-SEARCH-TAGS-INPUT-"), sg.Button("search tags", key="-SEARCH-TAGS-BUTTON-")],
             [sg.Button("Load Image", size=(40, 1), key="-IMG_NAME-")],
             [sg.Text(size=(40, 1), key="-IMG_DIR-")],
             self.files_column,
@@ -347,4 +349,15 @@ while True:
             load_image_to_preview(file_table_rows[selected_file_index][3])
         else:
             print("else", event[2])
-        # window['-CLICKED-'].update(f'{event[2][0]},{event[2][1]}')c
+    elif "-SEARCH-TAGS-BUTTON-" in event:
+        search_tags = values["-SEARCH-TAGS-INPUT-"].split(" ") if values.get("-SEARCH-TAGS-INPUT-") else []
+        if search_tags:
+            print("searching tags:", search_tags)
+            files_with_tag = query_class.get_files_by_tag_name(search_tags)
+            for file_row in files_with_tag:
+                row_tags = query_class.get_tags_for_image_id(file_row["id"])
+                file_row["tags_count"] = len(row_tags)
+            print("files-->", files_with_tag)
+            file_table_rows = base_window.build_files_row(files_with_tag)
+            print("file_table_rows-->", file_table_rows)
+            window["-FILES-TABLE-"].update(values=file_table_rows)

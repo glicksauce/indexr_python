@@ -212,6 +212,31 @@ class TableQueries:
         except Exception as e:
             pprint("remove_tag_from_file failed", e)
 
+    def get_files_by_tag_name(self, tag_names: list):
+        """
+        gets files that match given tag_names
+        """
+        try:
+            self.new_conn()
+
+            self.cur.execute(
+                f"SELECT a.* from {FilesTable.name} a"
+                f" WHERE a.id IN("
+                f" SELECT b.files_id FROM {TagsFilesTable.name} b"
+                f" LEFT JOIN {TagsTable.name} c ON b.tags_id = c.id"
+                f" WHERE c.tag_name = ANY(%s)"
+                f" GROUP BY b.files_id"
+                f" HAVING COUNT(DISTINCT c.tag_name) = %s"
+                f")", (tag_names, len(tag_names))
+            )
+
+            rows = [dict(row) for row in self.cur.fetchall()]
+            # pprint(f"{FilesTable.name} rows:")
+            self.close_conn()
+            return rows
+        except Exception as e:
+            pprint("get_files_by_tag_name failed", e)
+
 
 if __name__ == "__main__":
     from indexr.utils import load_creds_to_environ
