@@ -120,7 +120,7 @@ class WindowPane:
         self.layout = [
             [sg.Text(size=(40, 1), key="-OUTPUT-")],
             [sg.Button("Random Image"), sg.Button("Quit")],
-            [sg.Image(preview_img, key='-IMAGE-')],
+            [sg.Image(preview_img.getvalue(), key='-IMAGE-')],
             [sg.Input(size=(25, 1), key="-NEW-TAGS-")],
             self.tags_column,
             [sg.Input(size=(40, 1), key="-SEARCH-TAGS-INPUT-"), sg.Button("search tags", key="-SEARCH-TAGS-BUTTON-")],
@@ -157,7 +157,7 @@ def load_image_to_preview(file_row):
     img_path = file_row.get("file")
     img_directory, img_name = split_path_and_file(img_path)
     preview_img = load_image_from_path(img_path)
-    base_window.layout = base_window.display_image_view(preview_img)
+    # base_window.layout = base_window.display_image_view(preview_img)
     window["-PREVIEW-"].update(
         data=preview_img.getvalue()
     )
@@ -186,7 +186,7 @@ def load_image_from_path(file_path, resize_x=PREVIEW_IMG_WIDTH, resize_y=PREVIEW
             new_width, new_height = resize_x, resize_y
             scale = min(new_height/cur_height, new_width/cur_width)
             img = img.resize((int(cur_width*scale), int(cur_height*scale)))
-            print("image --->", img)
+            print("image --->", img, "type", type(img))
             img.save(bio, format="PNG")
             return bio
     except Exception as e:
